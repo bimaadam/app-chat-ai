@@ -70,4 +70,4 @@ jobs:
           files: build/app/outputs/flutter-apk/app-release.apk
           generate_release_notes: true # Auto buat catatan rilis
         env:
-          PAT_GITHUB: ${{ secrets.PAT_GITHUB }} # Pakai token bawaan GitHub
+          GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }} # Pakai token bawaan GitHub
