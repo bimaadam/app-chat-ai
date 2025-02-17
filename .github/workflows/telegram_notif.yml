@@ -1,11 +1,7 @@
-name: Telegram Notification
+name: Telegram Notification & Build APK
 
 on:
   push:
-    branches: [main]
-  release:
-    types: [created]
-  pull_request:
     branches: [main]
 
 jobs:
@@ -18,16 +14,41 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            let message = '';
+            const message = `🚀 *Commit Baru Terdeteksi!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Pesan Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
 
-            if (context.eventName === 'push') {
-              message = `Ada push baru ke branch ${{ github.ref }}:\nCommit message: ${{ github.event.head_commit.message }}\nLink: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
-            } else if (context.eventName === 'release') {
-              message = `Release baru telah dirilis: ${{ github.event.release.name }}\nDeskripsi: ${{ github.event.release.body }}\nLink: ${{ github.event.release.html_url }}`;
-            } else if (context.eventName === 'pull_request') {
-              message = `Ada pull request baru:\nJudul: ${{ github.event.pull_request.title }}\nLink: ${{ github.event.pull_request.html_url }}\nDilakukan oleh: ${{ github.event.pull_request.user.login }}`;
-            }
-
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=MarkdownV2`, {
-              method: 'POST'
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: message })
             });
+
+  build_apk:
+    needs: send_notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1' # Ganti dengan versi Flutter yang dipakai di proyek lo
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          #release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }}
