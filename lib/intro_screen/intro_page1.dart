@@ -5,7 +5,7 @@ class IntroPage1 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.red,
-      child: Center(child: Text('Kontol')),
+      child: Center(child: Text('Kontol Brutal')),
     );
   }
 }
