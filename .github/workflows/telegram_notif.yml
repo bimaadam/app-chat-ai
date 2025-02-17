@@ -1,8 +1,8 @@
 name: Telegram Notification
 
 on:
-  release:
-    types: [created]
+  push:
+    branches: [main] # Ganti 'main' dengan nama branch yang ingin Anda pantau
 
 jobs:
   send_notification:
@@ -14,6 +14,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
           text: |
-            Rilis baru telah dirilis: ${{ github.event.release.name }}
-            Deskripsi: ${{ github.event.release.body }}
-            Tautan: ${{ github.event.release.html_url }}
+            Commit baru ke branch ${{ github.ref }}:
+            Pesan Commit: ${{ github.event.head_commit.message }}
+            Link Commit: ${{ github.event.head_commit.url }}
+            Dilakukan oleh: ${{ github.event.pusher.name }}
