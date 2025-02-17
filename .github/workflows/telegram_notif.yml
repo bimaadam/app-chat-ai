@@ -10,10 +10,10 @@ jobs:
   send_notification:
     runs-on: ubuntu-latest
     outputs:
-      message_id: ${{ steps.send_telegram.outputs.message_id }}
+      commit_message_id: ${{ steps.send_commit_notification.outputs.message_id }}
     steps:
       - name: Send Telegram Notification (New Commit)
-        id: send_telegram
+        id: send_commit_notification
         uses: actions/github-script@v6
         with:
           script: |
@@ -35,34 +35,37 @@ jobs:
             });
 
             const sentMessage = await res.json();
-            console.log("Message ID:", sentMessage.result.message_id);
-
             core.setOutput("message_id", sentMessage.result.message_id);
 
   build_apk:
     needs: send_notification
     runs-on: ubuntu-latest
+    outputs:
+      build_message_id: ${{ steps.send_build_notification.outputs.message_id }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetch semua tag agar bisa dirilis
 
-      - name: Update Telegram Status (Build APK)
+      - name: Send Telegram Notification (Build Started)
+        id: send_build_notification
         uses: actions/github-script@v6
         with:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            const messageId = '${{ needs.send_notification.outputs.message_id }}';
 
-            const updateMessage = `🔄 *Proses:* Build APK sedang berjalan... ⏳`;
+            const buildMessage = `🔄 *Proses:* Build APK sedang berjalan... ⏳`;
 
-            await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: updateMessage, parse_mode: 'Markdown' })
+              body: JSON.stringify({ chat_id: chatId, text: buildMessage, parse_mode: 'Markdown' })
             });
+
+            const sentMessage = await res.json();
+            core.setOutput("message_id", sentMessage.result.message_id);
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -96,7 +99,7 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            const messageId = '${{ needs.send_notification.outputs.message_id }}';
+            const messageId = '${{ needs.build_apk.outputs.build_message_id }}';
             const repo = context.repo.owner + '/' + context.repo.repo;
             const tagName = context.ref.replace("refs/tags/", "");
             const apkUrl = `https://github.com/${repo}/releases/download/${tagName}/app-release.apk`;
