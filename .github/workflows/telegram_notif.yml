@@ -3,8 +3,8 @@ name: Telegram Notification & Build APK & Release
 on:
   push:
     branches: [main]
-    tags: # Trigger on tag pushes as well
-      - "v*" # Example: triggers on tags like v1.0.0, v1.0.1, etc.
+    tags:
+      - "v*" # Trigger kalau ada push tag v1.0.0, v1.0.1, dll
 
 jobs:
   send_notification:
@@ -17,9 +17,13 @@ jobs:
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
 
-            if (context.eventName === 'push' && context.ref.startsWith('refs/tags/')) {
-              const tagName = context.ref.replace('refs/tags/', '');
-              const message = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n🚀 Aplikasi telah di-build dan di-release!\n\n👤 *Dikirim oleh:* ${{ github.actor }}`;
+            if (context.eventName === 'push' && context.payload.ref.startsWith('refs/tags/')) {
+              const tagName = context.payload.ref.substring(10); // Ambil nama tag
+              const repo = context.repo.owner + '/' + context.repo.repo;
+              const releaseUrl = `https://github.com/${repo}/releases/tag/${tagName}`;
+              const apkUrl = `https://github.com/${repo}/releases/download/${tagName}/app-release.apk`;
+
+              const message = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n🚀 Aplikasi telah di-build dan di-release!\n\n📥 *[Download APK](${apkUrl})*\n🔗 *[Lihat Release](${releaseUrl})*\n\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
 
               await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
@@ -28,7 +32,7 @@ jobs:
               });
 
             } else {
-              const message = `🚀 *Commit Baru!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.actor }}`;
+              const message = `🚀 *Commit Baru Terdeteksi!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Pesan Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
 
               await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
@@ -44,12 +48,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for proper tag handling
+          fetch-depth: 0 # Fetch semua tag agar bisa dirilis
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.27.1" # Replace with your Flutter version
+          flutter-version: "3.27.1" # Sesuaikan dengan versi Flutter-mu
 
       - name: Install Dependencies
         run: flutter pub get
