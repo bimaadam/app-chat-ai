@@ -9,42 +9,56 @@ on:
 jobs:
   send_notification:
     runs-on: ubuntu-latest
+    outputs:
+      message_id: ${{ steps.send_notification.outputs.message_id }} # Simpan message ID buat update status nanti
     steps:
-      - name: Send Telegram Notification
+      - name: Send Telegram Notification (Start)
+        id: send_notification
         uses: actions/github-script@v6
         with:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const tagName = context.ref.replace("refs/tags/", "");
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            const releaseUrl = `https://github.com/${repo}/releases/tag/${tagName}`;
 
-            if (context.eventName === 'push' && context.payload.ref.startsWith('refs/tags/')) {
-              const tagName = context.payload.ref.substring(10); // Ambil nama tag
-              const repo = context.repo.owner + '/' + context.repo.repo;
-              const releaseUrl = `https://github.com/${repo}/releases/tag/${tagName}`;
-              const apkUrl = `https://github.com/${repo}/releases/download/${tagName}/app-release.apk`;
+            let message = `🚀 *Rilis Baru Dimulai!* 🚀\n\n🏷️ *Tag:* ${tagName}\n⏳ *Menyiapkan Build...*\n🔗 [Cek Release](${releaseUrl})`;
 
-              const message = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n🚀 Aplikasi telah di-build dan di-release!\n\n📥 *[Download APK](${apkUrl})*\n🔗 *[Lihat Release](${releaseUrl})*\n\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
+            });
 
-              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
-              });
+            const sentMessage = await res.json();
+            console.log("Message ID:", sentMessage.result.message_id);
 
-            } else {
-              const message = `🚀 *Commit Baru Terdeteksi!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Pesan Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
-
-              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
-              });
-            }
+            core.setOutput("message_id", sentMessage.result.message_id); # Simpan Message ID buat update status
 
   build_apk:
     needs: send_notification
     runs-on: ubuntu-latest
     steps:
+      - name: Update Telegram Status (Build APK)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
+            const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const messageId = '${{ needs.send_notification.outputs.message_id }}';
+            const tagName = context.ref.replace("refs/tags/", "");
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            const releaseUrl = `https://github.com/${repo}/releases/tag/${tagName}`;
+
+            const updateMessage = `🚀 *Rilis Baru Dimulai!* 🚀\n\n📦 *Sedang Build APK...* ⏳\n🔗 [Cek Release](${releaseUrl})`;
+
+            await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: updateMessage, parse_mode: 'Markdown' })
+            });
+
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -67,6 +81,10 @@ jobs:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
+  release_apk:
+    needs: build_apk
+    runs-on: ubuntu-latest
+    steps:
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/') # Hanya jalan kalau ada tag baru
         uses: softprops/action-gh-release@v1
@@ -75,3 +93,24 @@ jobs:
           generate_release_notes: true # Auto buat catatan rilis
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }} # Pakai token bawaan GitHub
+
+      - name: Update Telegram Status (Release Done)
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
+            const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const messageId = '${{ needs.send_notification.outputs.message_id }}';
+
+            const tagName = context.ref.replace("refs/tags/", "");
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            const releaseUrl = `https://github.com/${repo}/releases/tag/${tagName}`;
+            const apkUrl = `https://github.com/${repo}/releases/download/${tagName}/app-release.apk`;
+
+            const finalMessage = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n✅ *APK Siap Di-download!*\n📥 *[Download APK](${apkUrl})*\n🔗 *[Lihat Release](${releaseUrl})*\n\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
+
+            await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: finalMessage, parse_mode: 'Markdown' })
+            });
