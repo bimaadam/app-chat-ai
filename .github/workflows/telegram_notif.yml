@@ -102,6 +102,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }}
 
+  update_telegram:
+    needs: build_apk
+    runs-on: ubuntu-latest
+    steps:
       - name: Update Telegram Status (Release Done)
         uses: actions/github-script@v6
         with:
