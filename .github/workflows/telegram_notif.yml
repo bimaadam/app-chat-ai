@@ -2,6 +2,8 @@ name: Telegram Notification & Build APK & Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*" # Trigger hanya jika ada push tag v1.0.0, v1.0.1, dll
 
@@ -11,8 +13,27 @@ jobs:
     outputs:
       commit_message_id: ${{ steps.send_commit_notification.outputs.message_id }}
     steps:
-      - name: Send Telegram Notification (New Tag)
+      - name: Send Telegram Notification (New Commit)
         id: send_commit_notification
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
+            const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const commitMessage = context.payload.head_commit.message;
+            const commitUrl = context.payload.head_commit.url;
+            const message = `📝 *Commit Baru!* 📝\n\n🔹 *Pesan:* ${commitMessage}\n🔗 [Lihat Commit](${commitUrl})`;
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
+            });
+            const sentMessage = await res.json();
+            core.setOutput("message_id", sentMessage.result.message_id);
+
+      - name: Send Telegram Notification (New Tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        id: send_tag_notification
         uses: actions/github-script@v6
         with:
           script: |
@@ -30,6 +51,7 @@ jobs:
 
   build_apk:
     needs: send_notification
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     outputs:
       build_message_id: ${{ steps.send_build_notification.outputs.message_id }}
