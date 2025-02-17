@@ -6,7 +6,7 @@ class IntroPage3 extends StatelessWidget {
     return Container(
       color: Colors.pink,
       child: Center(
-        child: Text('Memek Ririn'),
+        child: Text('Memek Ririn Pink'),
       ),
     );
   }
