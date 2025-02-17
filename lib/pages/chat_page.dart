@@ -14,7 +14,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(kToolbarHeight),
         child: AppBar(
-          title: const Text('Chat Ai'),
+          title: const Text('Chat Ai - [Warning 18+]'),
           backgroundColor: Colors.blue,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
