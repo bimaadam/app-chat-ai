@@ -1,0 +1,19 @@
+name: Telegram Notification
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  send_notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Notification
+        uses: telegram-bot-api/sendmessage@v5
+        with:
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          text: |
+            Rilis baru telah dirilis: ${{ github.event.release.name }}
+            Deskripsi: ${{ github.event.release.body }}
+            Tautan: ${{ github.event.release.html_url }}
