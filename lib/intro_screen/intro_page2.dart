@@ -5,7 +5,12 @@ class IntroPage2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.lightGreen,
-      child: Center(child: Text('Memek')),
+      child: Center(
+        child: Text(
+          'Saya masih dalam pengembangan\nOleh Bima adam',
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

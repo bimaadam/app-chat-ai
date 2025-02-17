@@ -4,12 +4,30 @@ class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
   @override
-  _ChatPageState createState() => _ChatPageState();
+  State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          title: const Text('Chat Ai'),
+          backgroundColor: Colors.blue,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(25.0), // Adjust radius as needed
+              bottomRight: Radius.circular(25.0), // Adjust radius as needed
+            ),
+          ),
+        ),
+      ),
+      body: const Center(
+        // Added const for better performance
+        child: Text("Chat Content"),
+      ),
+    );
   }
 }
