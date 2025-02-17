@@ -1,14 +1,12 @@
 name: Telegram Notification
 
 on:
-  # Aktifkan untuk semua event yang ingin Anda notifikasi
   push:
     branches: [main]
   release:
-    types: [created, published, prereleased] # Sesuaikan dengan jenis release yang ingin Anda notifikasi
+    types: [created]
   pull_request:
     branches: [main]
-  # Tambahkan event lain jika diperlukan (misalnya: issues, deployment, dll.)
 
 jobs:
   send_notification:
@@ -22,22 +20,13 @@ jobs:
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
             let message = '';
 
-            // Tangani event push
             if (context.eventName === 'push') {
               message = `Ada push baru ke branch ${{ github.ref }}:\nCommit message: ${{ github.event.head_commit.message }}\nLink: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
-            }
-
-            // Tangani event release
-            if (context.eventName === 'release') {
+            } else if (context.eventName === 'release') {
               message = `Release baru telah dirilis: ${{ github.event.release.name }}\nDeskripsi: ${{ github.event.release.body }}\nLink: ${{ github.event.release.html_url }}`;
-            }
-
-            // Tangani event pull request
-            if (context.eventName === 'pull_request') {
+            } else if (context.eventName === 'pull_request') {
               message = `Ada pull request baru:\nJudul: ${{ github.event.pull_request.title }}\nLink: ${{ github.event.pull_request.html_url }}\nDilakukan oleh: ${{ github.event.pull_request.user.login }}`;
             }
-
-            // Tambahkan logika untuk event lain jika diperlukan
 
             fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=MarkdownV2`, {
               method: 'POST'
