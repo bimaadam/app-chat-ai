@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*" # Trigger kalau ada push tag v1.0.0, v1.0.1, dll
+      - "v*" # Trigger jika ada push tag seperti v1.0.0, v1.0.1, dll
 
 jobs:
   send_notification:
@@ -40,8 +40,6 @@ jobs:
   build_apk:
     needs: send_notification
     runs-on: ubuntu-latest
-    outputs:
-      build_message_id: ${{ steps.send_build_notification.outputs.message_id }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -55,7 +53,6 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-
             const buildMessage = `🔄 *Proses:* Build APK sedang berjalan... ⏳`;
 
             const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -65,7 +62,7 @@ jobs:
             });
 
             const sentMessage = await res.json();
-            core.setOutput("message_id", sentMessage.result.message_id);
+            core.setOutput("build_message_id", sentMessage.result.message_id);
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -99,7 +96,7 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            const messageId = '${{ needs.build_apk.outputs.build_message_id }}';
+            const messageId = '${{ steps.send_build_notification.outputs.build_message_id }}';
             const repo = context.repo.owner + '/' + context.repo.repo;
             const tagName = context.ref.replace("refs/tags/", "");
             const apkUrl = `https://github.com/${repo}/releases/download/${tagName}/app-release.apk`;
@@ -107,8 +104,21 @@ jobs:
 
             const finalMessage = `✅ *Build Selesai!* 🎉\n\n📥 *[Download APK](${apkUrl})*\n🔗 *[Lihat Release](${releaseUrl})*`;
 
-            await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: finalMessage, parse_mode: 'Markdown' })
-            });
+            if (messageId) {
+              await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  message_id: messageId,
+                  text: finalMessage,
+                  parse_mode: 'Markdown'
+                })
+              });
+            } else {
+              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: finalMessage, parse_mode: 'Markdown' })
+              });
+            }
