@@ -17,24 +17,23 @@ jobs:
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
 
-            // Check if it's a tag push
-            if (context.eventName === 'push' && context.payload.ref.startsWith('refs/tags/')) {
-              const tagName = context.payload.ref.substring(10); // Extract tag name
-              const message = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n🚀 Aplikasi telah di-build dan di-release!\n\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
+            if (context.eventName === 'push' && context.ref.startsWith('refs/tags/')) {
+              const tagName = context.ref.replace('refs/tags/', '');
+              const message = `🎉 *Rilis Baru!* 🎉\n\n🏷️ *Tag:* ${tagName}\n🚀 Aplikasi telah di-build dan di-release!\n\n👤 *Dikirim oleh:* ${{ github.actor }}`;
 
               await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' }) // Added parse_mode
+                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
               });
 
-            } else { // It's a branch push
-              const message = `🚀 *Commit Baru Terdeteksi!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Pesan Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
+            } else {
+              const message = `🚀 *Commit Baru!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.actor }}`;
 
               await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' }) // Added parse_mode
+                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
               });
             }
 
@@ -45,7 +44,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Important: Fetch all tags for releases
+          fetch-depth: 0 # Fetch all history for proper tag handling
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -65,10 +64,10 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') # Only create a release for tags
+        if: startsWith(github.ref, 'refs/tags/') # Hanya jalan kalau ada tag baru
         uses: softprops/action-gh-release@v1
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
-          token: ${{ secrets.PAT_GITHUB }} # Use GITHUB_TOKEN, not PAT
+          generate_release_notes: true # Auto buat catatan rilis
         env:
-          PAT_GITHUB: ${{ secrets.PAT_GITHUB }} # Make sure this is set
+          PAT_GITHUB: ${{ secrets.PAT_GITHUB }} # Pakai token bawaan GitHub
