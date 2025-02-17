@@ -12,13 +12,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const token = process.env.TELEGRAM_BOT_TOKEN;
-            const chatId = process.env.TELEGRAM_CHAT_ID;
-            const message = `Commit baru ke branch ${process.env.GITHUB_REF}:
-            ${process.env.GITHUB_EVENT_HEAD_COMMIT_MESSAGE}
-            Link Commit: ${process.env.GITHUB_EVENT_HEAD_COMMIT_URL}
-            Dilakukan oleh: ${process.env.GITHUB_EVENT_PUSHER_NAME}`;
-            
+            const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
+            const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const message = `Commit baru ke branch ${{ github.ref }}:\n${{ github.event.head_commit.message }}\nLink Commit: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
+
             await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -35,7 +32,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.1'
+          flutter-version: '3.27.1' # Ganti dengan versi Flutter yang dipakai di proyek lo
 
       - name: Install Dependencies
         run: flutter pub get
