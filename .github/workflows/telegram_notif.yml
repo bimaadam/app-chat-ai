@@ -14,12 +14,12 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            const message = `Commit baru ke branch ${{ github.ref }}:\n${{ github.event.head_commit.message }}\nLink Commit: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
-
+            const message = `🚀 *Commit Baru Terdeteksi!* 🚀\n\n📌 *Branch:* ${{ github.ref }}\n📝 *Pesan Commit:* \n${{ github.event.head_commit.message }}\n🔗 [Lihat Commit](${{ github.event.head_commit.url }})\n👤 *Dikirim oleh:* ${{ github.event.pusher.name }}`;
+            
             await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, text: message })
+              body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" })
             });
 
   build_apk:
@@ -41,7 +41,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Update ke v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
