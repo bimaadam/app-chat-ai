@@ -3,6 +3,8 @@ name: Telegram Notification
 on:
   push:
     branches: [main]
+  release:
+    types: [created]
 
 jobs:
   send_notification:
@@ -14,8 +16,14 @@ jobs:
           script: |
             const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
             const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
-            const message = `Commit baru ke branch ${{ github.ref }}:\n${{ github.event.head_commit.message }}\nLink Commit: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
+            let message = '';
 
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`, {
+            if (context.eventName === 'release') {
+              message = `Rilis baru telah dirilis: ${github.event.release.name}\nDeskripsi: ${github.event.release.body}\nLink: ${github.event.release.html_url}`;
+            } else if (context.eventName === 'push') {
+              message = `Ada push baru ke branch ${{ github.ref }}:\nCommit message: ${{ github.event.head_commit.message }}\nLink: ${{ github.event.head_commit.url }}`;
+            }
+
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=MarkdownV2`, {
               method: 'POST'
             });
