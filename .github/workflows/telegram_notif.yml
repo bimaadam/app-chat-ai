@@ -2,19 +2,20 @@ name: Telegram Notification
 
 on:
   push:
-    branches: [main] # Ganti 'main' dengan nama branch yang ingin Anda pantau
+    branches: [main]
 
 jobs:
   send_notification:
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram Notification
-        uses: telegram-bot-api/sendmessage@v5
+        uses: actions/github-script@v6
         with:
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          text: |
-            Commit baru ke branch ${{ github.ref }}:
-            Pesan Commit: ${{ github.event.head_commit.message }}
-            Link Commit: ${{ github.event.head_commit.url }}
-            Dilakukan oleh: ${{ github.event.pusher.name }}
+          script: |
+            const token = '${{ secrets.TELEGRAM_BOT_TOKEN }}';
+            const chatId = '${{ secrets.TELEGRAM_CHAT_ID }}';
+            const message = `Commit baru ke branch ${{ github.ref }}:\n${{ github.event.head_commit.message }}\nLink Commit: ${{ github.event.head_commit.url }}\nDilakukan oleh: ${{ github.event.pusher.name }}`;
+
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`, {
+              method: 'POST'
+            });
